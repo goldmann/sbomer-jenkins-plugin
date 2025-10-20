@@ -1,12 +1,6 @@
 package org.sbomer.jenkins;
 
-import java.io.IOException;
-
-import org.jenkinsci.Symbol;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.QueryParameter;
-
+import com.cloudbees.plugins.credentials.CredentialsProvider;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
@@ -14,11 +8,21 @@ import hudson.Launcher;
 import hudson.model.AbstractProject;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.security.ACL;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import jakarta.servlet.ServletException;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import jenkins.tasks.SimpleBuildStep;
+import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.Symbol;
+import org.jenkinsci.plugins.plaincredentials.StringCredentials;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.QueryParameter;
 
 public class RequestGenerationStep extends Builder implements SimpleBuildStep {
     private String identifier;
@@ -51,8 +55,34 @@ public class RequestGenerationStep extends Builder implements SimpleBuildStep {
     @Override
     public void perform(Run<?, ?> run, FilePath workspace, EnvVars env, Launcher launcher, TaskListener listener)
             throws InterruptedException, IOException {
-        listener.getLogger().println(
-                "Requesting generation of artifact with identifier: " + identifier + " and type: " + type);
+        listener.getLogger()
+                .println("Requesting generation of artifact with identifier: " + identifier + " and type: " + type);
+
+        SbomerConfiguration config = SbomerConfiguration.get();
+
+        if (config == null) {
+            listener.getLogger().println("Plugin configuration is not available.");
+            return;
+        }
+
+        String apiTokenId = config.getApiTokenId();
+
+        if (StringUtils.isBlank(apiTokenId)) {
+            listener.getLogger().println("API Token credential is not configured in Jenkins system settings.");
+            return;
+        }
+
+        List<StringCredentials> credentials = CredentialsProvider.lookupCredentialsInItem(
+                StringCredentials.class, null, ACL.SYSTEM2, Collections.emptyList());
+
+        if (credentials.isEmpty()) {
+            listener.getLogger().println("No API Token credentials found.");
+            return;
+        }
+
+        StringCredentials credential = credentials.get(0);
+
+        listener.getLogger().println("Using API Token credential with ID: '" + credential.getId() + "'");
     }
 
     @Symbol("sbomerGenerateManifests")

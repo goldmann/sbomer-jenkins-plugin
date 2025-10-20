@@ -1,10 +1,9 @@
 package org.sbomer.jenkins;
 
+import hudson.model.FreeStyleProject;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
-
-import hudson.model.FreeStyleProject;
 
 @WithJenkins
 class RequestGenerationStepTest {
@@ -18,7 +17,8 @@ class RequestGenerationStepTest {
         project.getBuildersList().add(new RequestGenerationStep(identifier, type));
         project = jenkins.configRoundtrip(project);
         jenkins.assertEqualDataBoundBeans(
-                new RequestGenerationStep(identifier, type), project.getBuildersList().get(0));
+                new RequestGenerationStep(identifier, type),
+                project.getBuildersList().get(0));
     }
 
     // @Test
